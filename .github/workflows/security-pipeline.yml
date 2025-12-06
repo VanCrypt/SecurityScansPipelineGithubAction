@@ -165,9 +165,36 @@ jobs:
           mv "$extracted" dependency-check
         fi
 
+    # -----------------------
+    # Configure NVD API Key
+    # -----------------------
+     - name: Configure NVD API Key
+       if: ${{ secrets.NVD_API_KEY != '' }}
+       run: |
+         mkdir -p ~/.dependency-check
+         cat <<EOF > ~/.dependency-check/settings.xml
+         <?xml version="1.0" encoding="UTF-8"?>
+         <configuration>
+          <cve>
+          <apiKey>${{ secrets.NVD_API_KEY }}</apiKey>
+         </cve>
+         </configuration>
+         EOF
+
     # Optional DEBUG
      - name: Debug files
        run: ls -R .
+
+       # -------------------------------------
+      # Cache DC database (HUGE SPEED BOOST)
+      # --------------------------------------
+     - name: Cache Dependency-Check data
+       uses: actions/cache@v3
+       with:
+        path: ~/.dependency-check
+        key: dependency-check-${{ runner.os }}-${{ steps.dc_asset.outputs.url }}
+        restore-keys: |
+         dependency-check-${{ runner.os }}
 
     # --------------------------
     # 4. Run Dependency-Check scan
