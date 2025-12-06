@@ -129,7 +129,7 @@ jobs:
       # 2. Run OWASP Dependency-Check
       # --------------------------
       - name: OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@v4
+        uses: dependency-check/Dependency-Check_Action@v3.4.0
         with:
           project: "myapp"
           path: "."
