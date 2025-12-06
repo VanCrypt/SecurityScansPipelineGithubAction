@@ -1,15 +1,11 @@
-Here is a **clean, professional, English summary** you can use directly in your README.
-
----
-
-# 🔐 Security Pipeline – Overview
+# 🔐 Security Check Pipeline – Overview
 
 This repository provides a complete **security-focused CI/CD pipeline** designed to automatically build, test, and scan a containerized application.
 It is intended as a simple, reusable template for anyone who wants to **secure their code, Docker images, and infrastructure configuration** using GitHub Actions.
 
 # 🚀 What This Repository Does
 
-Whenever you push code or open a pull request, GitHub Actions automatically runs a set of security jobs:
+Whenever you push code, commit or run the workflow, GitHub Actions automatically runs a set of security jobs:
 
 ## 🧱 **1. Build a Docker Application**
 
@@ -21,13 +17,11 @@ The workflow:
 docker build -t myapp:latest .
 docker run --rm myapp:latest
 ```
+You can replace `main.py` and the Dockerfile with your own app.
 
 ✔ Builds a Docker image using your application
 ✔ Runs a smoke test by executing the container
 ✔ Cleans up automatically after execution
-
-You can replace `main.py` and the Dockerfile with your own app.
-
 
 ## 🛡️ **2. File System Scan (Trivy FS)**
 
@@ -71,8 +65,10 @@ For OWASP Dependency-Check, it is recommended to provide a free NIST API key to 
 
 1. Clone or copy this repository
 2. Replace the example `main.py` and `Dockerfile` with your own application
-3. Push your changes
-4. The pipeline automatically:
+3. Update `requirements.txt` with your own.
+4. Push your changes
+
+The pipeline automatically:
 
 * builds your application
 * scans the code and image
