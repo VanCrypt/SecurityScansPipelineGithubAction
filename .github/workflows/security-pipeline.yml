@@ -117,51 +117,77 @@ jobs:
   dependency_check:
     needs: build
     runs-on: ubuntu-latest
-      
+
     steps:
+    # --------------------------
+    # 1. Checkout repository
+    # --------------------------
      - name: Checkout repo
        uses: actions/checkout@v4
-  
+
+    # --------------------------
+    # 2. Get latest Dependency-Check release ZIP URL
+    # --------------------------
      - name: Get latest Dependency-Check ZIP URL
        id: dc_asset
        run: |
         url=$(curl -s https://api.github.com/repos/jeremylong/DependencyCheck/releases/latest \
-        | jq -r '.assets[] | select(.name | test("^dependency-check-[0-9.]+-release\\.zip$")) | .browser_download_url')
-  
-         {
+        | jq -r '.assets[] 
+          | select(.name | test("^dependency-check-[0-9.]+-release\\.zip$"))
+            | .browser_download_url')
+
+        {
           echo "url<<EOF"
           echo "$url"
           echo "EOF"
         } >> $GITHUB_OUTPUT
 
-          
+    # --------------------------
+    # 3. Download + extract Dependency-Check CLI
+    # --------------------------
      - name: Download and extract Dependency-Check
        run: |
         url="${{ steps.dc_asset.outputs.url }}"
         echo "Downloading: $url"
+
+        # Download ZIP
         curl -L "$url" -o dependency-check.zip
+
+        # Extract ZIP
         unzip dependency-check.zip
-  
+
+        # Detect extracted folder name
         extracted=$(find . -maxdepth 1 -type d -name "dependency-check*" | head -n 1)
         echo "Extracted folder: $extracted"
-  
-        mv "$extracted" dependency-check
-  
-     - name: DEBUG list files
+
+        # Rename only if needed
+        if [ "$extracted" != "./dependency-check" ] && [ "$extracted" != "dependency-check" ]; then
+          mv "$extracted" dependency-check
+        fi
+
+    # Optional DEBUG
+     - name: Debug files
        run: ls -R .
-  
+
+    # --------------------------
+    # 4. Run Dependency-Check scan
+    # --------------------------
      - name: Run Dependency-Check
        run: |
         ./dependency-check/bin/dependency-check.sh \
-        --project "myapp" \
-        --scan "." \
-        --out "dependency-check-report" \
-        --format "HTML"
-  
-     - name: Upload report
+          --project "myapp" \
+          --scan "." \
+          --out "dependency-check-report" \
+          --format "HTML"
+
+    # --------------------------
+    # 5. Upload report artifact
+    # --------------------------
+     - name: Upload Dependency-Check report
        uses: actions/upload-artifact@v4
        with:
-          name: dependency-check-report
-          path: dependency-check-report
-  
+        name: dependency-check-report
+        path: dependency-check-report
+          
+
   
