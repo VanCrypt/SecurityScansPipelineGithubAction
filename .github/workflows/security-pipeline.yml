@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ==========================
+  # ===========================
   # Build & smoke test job
-  # ==========================
+  # ===========================
   build:
     runs-on: ubuntu-latest
 
