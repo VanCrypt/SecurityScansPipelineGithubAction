@@ -9,9 +9,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ==========================
-  # Build & smoke test job
-  # ==========================
+  # ===========================================================
+  # BUILD & SMOKE TEST JOB
+  # Ensures the application builds and the container runs before
+  # any security scans are executed.
+  # ===========================================================
   build:
     runs-on: ubuntu-latest
 
@@ -25,9 +27,11 @@ jobs:
       - name: Run container (smoke test)
         run: docker run --rm myapp:latest
 
-  # ==========================
-  # Trivy filesystem scan job
-  # ==========================
+  # ===========================================================
+  # TRIVY FILESYSTEM SCAN JOB
+  # Scans repository files for secrets, vulnerable dependencies,
+  # and misconfigurations. Job waits for build to succeed first.
+  # ===========================================================
   trivy_fs:
     needs: build
     runs-on: ubuntu-latest
@@ -35,7 +39,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+      # -------------------------------------------------------
+      # Run Trivy filesystem scan (CRITICAL/HIGH vulnerabilities)
+      # -------------------------------------------------------
       - name: Trivy Filesystem Scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
@@ -43,9 +49,11 @@ jobs:
           severity: CRITICAL,HIGH
           format: table
 
-  # ==========================
-  # Trivy image scan job
-  # ==========================
+  # ===========================================================
+  # TRIVY IMAGE SCAN JOB
+  # Builds and scans the Docker image for vulnerabilities
+  # in OS packages and application dependencies.
+  # ===========================================================
   trivy_image:
     needs: build
     runs-on: ubuntu-latest
@@ -56,7 +64,10 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t myapp:latest .
-
+        
+      # -------------------------------------------------------
+      # Perform Trivy image scan (CRITICAL/HIGH vulnerabilities)
+      # -------------------------------------------------------
       - name: Trivy Image Scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
@@ -64,9 +75,11 @@ jobs:
           severity: CRITICAL,HIGH
           format: table
 
-  # ==========================
-  # Checkov IaC scan job
-  # ==========================
+  # ===========================================================
+  # CHECKOV IaC SCAN JOB
+  # Analyzes Dockerfile, GitHub workflows, and IaC files for
+  # misconfigurations or security policy violations.
+  # ===========================================================
   checkov:
     needs: build
     runs-on: ubuntu-latest
@@ -75,14 +88,20 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # -------------------------------------------------------
+      # Run Checkov scan across all project files
+      # -------------------------------------------------------
       - name: Checkov Scan
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: .
 
-  # ===========================
-  # Dependency-Check job
-  # ===========================
+  # ===========================================================
+  # DEPENDENCY-CHECK JOB
+  # Downloads OWASP Dependency-Check, updates vulnerability data,
+  # scans project dependencies, and generates an HTML report.
+  # ===========================================================
+  
   dependency_check:
     needs: build
     runs-on: ubuntu-latest
@@ -93,6 +112,9 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # -------------------------------------------------------
+      # Fetch the latest Dependency-Check release automatically
+      # -------------------------------------------------------
       - name: Get latest Dependency-Check ZIP URL
         id: dc_asset
         run: |
@@ -107,7 +129,9 @@ jobs:
             echo "EOF"
           } >> $GITHUB_OUTPUT
 
-
+      # -------------------------------------------------------
+      # Download and extract the Dependency-Check tool
+      # -------------------------------------------------------
       - name: Download and extract Dependency-Check
         run: |
           url="${{ steps.dc_asset.outputs.url }}"
@@ -122,10 +146,16 @@ jobs:
           if [ "$extracted" != "./dependency-check" ] && [ "$extracted" != "dependency-check" ]; then
             mv "$extracted" dependency-check
           fi
-        
+
+      # -------------------------------------------------------
+      # Export the NVD API key for faster vulnerability updates
+      # -------------------------------------------------------
       - name: Export NVD API Key for ODC
         run: echo "NVD_API_KEY=${{ secrets.NVD_API_KEY }}" >> $GITHUB_ENV
 
+      # -------------------------------------------------------
+      # Run the full Dependency-Check scan on the repository
+      # -------------------------------------------------------
       - name: Run Dependency-Check
         run: |
           ./dependency-check/bin/dependency-check.sh \
@@ -137,7 +167,9 @@ jobs:
             --disableOssIndex \
             --nvdApiKey $NVD_API_KEY \
             
-
+      # -------------------------------------------------------
+      # Upload the generated HTML report as a pipeline artifact
+      # -------------------------------------------------------
       - name: Upload Dependency-Check report
         uses: actions/upload-artifact@v4
         with:
