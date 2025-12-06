@@ -9,7 +9,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
   # ==========================
   # Build & smoke test job
   # ==========================
@@ -25,7 +24,6 @@ jobs:
 
       - name: Run container (smoke test)
         run: docker run --rm myapp:latest
-
 
   # ==========================
   # Trivy filesystem scan job
@@ -44,7 +42,6 @@ jobs:
           scan-type: fs
           severity: CRITICAL,HIGH
           format: table
-
 
   # ==========================
   # Trivy image scan job
@@ -67,7 +64,6 @@ jobs:
           severity: CRITICAL,HIGH
           format: table
 
-
   # ==========================
   # Checkov IaC scan job
   # ==========================
@@ -83,7 +79,6 @@ jobs:
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: .
-
 
   # ===========================
   # Dependency-Check job
@@ -137,18 +132,18 @@ jobs:
       - name: Configure NVD API Key
         if: ${{ secrets.NVD_API_KEY }}
         run: |
-            mkdir -p ~/.dependency-check
-            cat <<EOF > ~/.dependency-check/settings.xml
-            <?xml version="1.0" encoding="UTF-8"?>
-            <configuration>
-              <cve>
-                <apiKey>${{ secrets.NVD_API_KEY }}</apiKey>
-              </cve>
-              <analyzers>
-                <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
-              </analyzers>
-            </configuration>
-            EOF
+          mkdir -p ~/.dependency-check
+          cat <<EOF > ~/.dependency-check/settings.xml
+          <?xml version="1.0" encoding="UTF-8"?>
+          <configuration>
+            <cve>
+              <apiKey>${{ secrets.NVD_API_KEY }}</apiKey>
+            </cve>
+            <analyzers>
+              <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
+            </analyzers>
+          </configuration>
+          EOF
 
       - name: Run Dependency-Check
         run: |
