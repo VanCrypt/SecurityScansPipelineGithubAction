@@ -107,15 +107,6 @@ jobs:
             echo "EOF"
           } >> $GITHUB_OUTPUT
 
-      # Cache the NVD database for huge speed boost
-      - name: Cache Dependency-Check database
-        uses: actions/cache@v3
-        with:
-         path: ~/.m2/repository/org/owasp/dependency-check-data
-         key: dependency-check-db-${{ runner.os }}
-         restore-keys: |
-          dependency-check-db-
-
 
       - name: Download and extract Dependency-Check
         run: |
