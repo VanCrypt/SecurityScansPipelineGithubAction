@@ -1,6 +1,7 @@
 name: Security Pipeline
+
 permissions:
- contents: read
+  contents: read
 
 on:
   push:
@@ -16,22 +17,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # --------------------------
-      # 1. Checkout repository
-      # --------------------------
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # --------------------------
-      # 2. Build Docker image
-      # --------------------------
       - name: Build Docker image
         run: docker build -t myapp:latest .
 
-      # --------------------------
-      # 3. Run container (smoke test)
-      # --------------------------
-      - name: Run container
+      - name: Run container (smoke test)
         run: docker run --rm myapp:latest
 
 
@@ -43,15 +35,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # --------------------------
-      # 1. Checkout repository
-      # --------------------------
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # --------------------------
-      # 2. Trivy FS scan (repo scan)
-      # --------------------------
       - name: Trivy Filesystem Scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
@@ -68,21 +54,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # --------------------------
-      # 1. Checkout repository
-      # --------------------------
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # --------------------------
-      # 2. Build Docker image
-      # --------------------------
       - name: Build Docker image
         run: docker build -t myapp:latest .
 
-      # --------------------------
-      # 3. Trivy image scan
-      # --------------------------
       - name: Trivy Image Scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
@@ -99,20 +76,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # --------------------------
-      # 1. Checkout repository
-      # --------------------------
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # --------------------------
-      # 2. Checkov IaC scan
-      # --------------------------
       - name: Checkov Scan
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: .
-          
+
+
+  # ==========================
+  # Dependency-Check job
+  # ==========================
   dependency_check:
     needs: build
     runs-on: ubuntu-latest
@@ -120,7 +95,7 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-  
+
       - name: Get latest Dependency-Check ZIP URL
         id: dc_asset
         run: |
@@ -128,16 +103,14 @@ jobs:
             | jq -r '.assets[] 
               | select(.name | test("^dependency-check-[0-9.]+-release\\.zip$"))
               | .browser_download_url')
-  
+
           {
             echo "url<<EOF"
             echo "$url"
             echo "EOF"
           } >> $GITHUB_OUTPUT
-  
-      # -----------------------
-      # Cache DC database (HUGE SPEED BOOST)
-      # -----------------------
+
+      # Cache the NVD database for huge speed boost
       - name: Cache Dependency-Check data
         uses: actions/cache@v3
         with:
@@ -145,27 +118,24 @@ jobs:
           key: dependency-check-${{ runner.os }}
           restore-keys: |
             dependency-check-${{ runner.os }}
-  
+
       - name: Download and extract Dependency-Check
         run: |
           url="${{ steps.dc_asset.outputs.url }}"
           echo "Downloading: $url"
-  
+
           curl -L "$url" -o dependency-check.zip
           unzip dependency-check.zip
-  
+
           extracted=$(find . -maxdepth 1 -type d -name "dependency-check*" | head -n 1)
           echo "Extracted folder: $extracted"
-  
+
           if [ "$extracted" != "./dependency-check" ] && [ "$extracted" != "dependency-check" ]; then
             mv "$extracted" dependency-check
           fi
-  
-      # -----------------------
-      # Configure NVD API Key
-      # -----------------------
+
       - name: Configure NVD API Key
-        if: ${{ secrets.NVD_API_KEY != '' }}
+        if: ${{ secrets.NVD_API_KEY }}
         run: |
           mkdir -p ~/.dependency-check
           cat <<EOF > ~/.dependency-check/settings.xml
@@ -174,18 +144,22 @@ jobs:
             <cve>
               <apiKey>${{ secrets.NVD_API_KEY }}</apiKey>
             </cve>
+            <analyzers>
+              <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
+            </analyzers>
           </configuration>
           EOF
-  
+
       - name: Run Dependency-Check
         run: |
           ./dependency-check/bin/dependency-check.sh \
             --project "myapp" \
             --scan "." \
             --out "dependency-check-report" \
-            --format "HTML"
-  
-      - name: Upload report
+            --format "HTML" \
+            --disableOssIndex
+
+      - name: Upload Dependency-Check report
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
