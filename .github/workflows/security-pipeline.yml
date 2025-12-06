@@ -127,8 +127,9 @@ jobs:
       - name: Get latest Dependency-Check version
         id: dc_version
         run: |
-          latest=$(curl -s https://api.github.com/repos/jeremylong/DependencyCheck/releases/latest | jq -r .tag_name)
-          echo "version=$latest" >> $GITHUB_OUTPUT
+          url=$(curl -s https://api.github.com/repos/jeremylong/DependencyCheck/releases/latest \
+          | jq -r '.assets[] | select(.name | endswith("release.zip")) | .browser_download_url')
+          echo "url=$url" >> $GITHUB_OUTPUT
 
       # -------------------------------
       # 2. Download DC latest version
@@ -136,9 +137,9 @@ jobs:
       
       - name: Download Dependency-Check
         run: |
-          curl -LO https://github.com/jeremylong/DependencyCheck/releases/download/${{ steps.dc_version.outputs.version }}/dependency-check-${{ steps.dc_version.outputs.version }}-release.zip
-          unzip dependency-check-${{ steps.dc_version.outputs.version }}-release.zip
-          mv dependency-check-${{ steps.dc_version.outputs.version }} dependency-check
+          curl -LO ${{ steps.dc_asset.outputs.url }}
+          unzip dependency-check-*-release.zip
+          mv dependency-check-* dependency-check
           
       # --------------------------
       # 3. Checkout repository
