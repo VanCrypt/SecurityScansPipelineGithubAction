@@ -128,7 +128,7 @@ jobs:
         id: dc_asset
         run: |
           url=$(curl -s https://api.github.com/repos/jeremylong/DependencyCheck/releases/latest \
-          | jq -r '.assets[] | select(.name | endswith("release.zip")) | .browser_download_url')
+          | jq -r '.assets[] | select(.name | test("^dependency-check-[0-9.]+-release\\.zip$")) | .browser_download_url')
 
           {
             echo "url<<EOF"
