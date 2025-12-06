@@ -1,0 +1,61 @@
+name: Security Pipeline
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      # --------------------------
+      # 1. Checkout the repository
+      # --------------------------
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+
+      # --------------------------
+      # 2. Build Docker image
+      # --------------------------
+      - name: Build Docker image
+        run: docker build -t myapp:latest .
+
+      # --------------------------
+      # 3. Run container (basic test)
+      # --------------------------
+      - name: Run container
+        run: docker run --rm myapp:latest
+
+
+      # --------------------------
+      # 4. Trivy FS scan (repo scan)
+      # --------------------------
+      - name: Trivy Filesystem Scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: fs
+          severity: CRITICAL,HIGH
+          format: table
+
+
+      # --------------------------
+      # 5. Trivy Image scan
+      # --------------------------
+      - name: Trivy Image Scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: myapp:latest
+          severity: CRITICAL,HIGH
+          format: table
+
+
+      # --------------------------
+      # 6. Checkov IaC scan
+      # --------------------------
+      - name: Checkov Scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
