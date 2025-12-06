@@ -148,6 +148,9 @@ jobs:
           unzip dependency-check-*-release.zip
           mv dependency-check-* dependency-check
           
+      - name: DEBUG list files
+        run: ls -R .
+
       # --------------------------
       # 3. Checkout repository
       # --------------------------
