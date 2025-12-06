@@ -139,6 +139,7 @@ jobs:
           ./dependency-check/bin/dependency-check.sh \
             --project "myapp" \
             --scan "." \
+            --exclude "dependency-check" \
             --out "dependency-check-report" \
             --format "HTML" \
             --disableOssIndex \
