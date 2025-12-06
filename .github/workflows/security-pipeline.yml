@@ -86,6 +86,8 @@ jobs:
   dependency_check:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      HOME: /home/runner
 
     steps:
       - name: Checkout repo
@@ -159,7 +161,6 @@ jobs:
 
       - name: Run Dependency-Check
         run: |
-          export HOME=/home/runner
           ./dependency-check/bin/dependency-check.sh \
             --project "myapp" \
             --scan "." \
