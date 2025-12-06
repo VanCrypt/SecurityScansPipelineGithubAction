@@ -130,34 +130,7 @@ jobs:
           if [ "$extracted" != "./dependency-check" ] && [ "$extracted" != "dependency-check" ]; then
             mv "$extracted" dependency-check
           fi
-          
-      - name: Debug secret presence
-        run: |
-          if [ -z "${{ secrets.NVD_API_KEY }}" ]; then
-            echo "❌ SECRET NVD_API_KEY IS NOT AVAILABLE"
-          else
-            echo "✅ SECRET NVD_API_KEY IS PRESENT"
-          fi
-          
-      - name: Configure NVD API Key
-        run: |
-          mkdir -p /home/runner/.dependency-check
-          cat <<EOF > /home/runner/.dependency-check/settings.xml
-          <?xml version="1.0" encoding="UTF-8"?>
-          <configuration>
-            <cve>
-              <apiKey>${{ secrets.NVD_API_KEY }}</apiKey>
-              <apiUrl>https://services.nvd.nist.gov/rest/json/cves/2.0</apiUrl>
-            </cve>
-            <analyzers>
-              <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
-            </analyzers>
-          </configuration>
-          EOF
-
-          echo "📌 settings.xml created at:"
-          ls -l /home/runner/.dependency-check
-
+        
       - name: Export NVD API Key for ODC
         run: echo "NVD_API_KEY=${{ secrets.NVD_API_KEY }}" >> $GITHUB_ENV
 
