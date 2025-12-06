@@ -9,16 +9,19 @@ on:
   workflow_dispatch:
 
 jobs:
-  security:
+
+  # ==========================
+  # Build & smoke test job
+  # ==========================
+  build:
     runs-on: ubuntu-latest
 
     steps:
       # --------------------------
-      # 1. Checkout the repository
+      # 1. Checkout repository
       # --------------------------
       - name: Checkout repo
         uses: actions/checkout@v4
-
 
       # --------------------------
       # 2. Build Docker image
@@ -27,14 +30,28 @@ jobs:
         run: docker build -t myapp:latest .
 
       # --------------------------
-      # 3. Run container (basic test)
+      # 3. Run container (smoke test)
       # --------------------------
       - name: Run container
         run: docker run --rm myapp:latest
 
 
+  # ==========================
+  # Trivy filesystem scan job
+  # ==========================
+  trivy_fs:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
       # --------------------------
-      # 4. Trivy FS scan (repo scan)
+      # 1. Checkout repository
+      # --------------------------
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # --------------------------
+      # 2. Trivy FS scan (repo scan)
       # --------------------------
       - name: Trivy Filesystem Scan
         uses: aquasecurity/trivy-action@0.20.0
@@ -44,8 +61,28 @@ jobs:
           format: table
 
 
+  # ==========================
+  # Trivy image scan job
+  # ==========================
+  trivy_image:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
       # --------------------------
-      # 5. Trivy Image scan
+      # 1. Checkout repository
+      # --------------------------
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # --------------------------
+      # 2. Build Docker image
+      # --------------------------
+      - name: Build Docker image
+        run: docker build -t myapp:latest .
+
+      # --------------------------
+      # 3. Trivy image scan
       # --------------------------
       - name: Trivy Image Scan
         uses: aquasecurity/trivy-action@0.20.0
@@ -55,8 +92,22 @@ jobs:
           format: table
 
 
+  # ==========================
+  # Checkov IaC scan job
+  # ==========================
+  checkov:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
       # --------------------------
-      # 6. Checkov IaC scan
+      # 1. Checkout repository
+      # --------------------------
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # --------------------------
+      # 2. Checkov IaC scan
       # --------------------------
       - name: Checkov Scan
         uses: bridgecrewio/checkov-action@v12
