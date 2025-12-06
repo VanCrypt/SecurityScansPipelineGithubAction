@@ -115,25 +115,19 @@ jobs:
           directory: .
           
   dependency_check:
-    needs: build
-    runs-on: ubuntu-latest
+  needs: build
+  runs-on: ubuntu-latest
 
-    steps:
-    # --------------------------
-    # 1. Checkout repository
-    # --------------------------
-     - name: Checkout repo
-       uses: actions/checkout@v4
+  steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
-    # --------------------------
-    # 2. Get latest Dependency-Check release ZIP URL
-    # --------------------------
-     - name: Get latest Dependency-Check ZIP URL
-       id: dc_asset
-       run: |
+    - name: Get latest Dependency-Check ZIP URL
+      id: dc_asset
+      run: |
         url=$(curl -s https://api.github.com/repos/jeremylong/DependencyCheck/releases/latest \
-        | jq -r '.assets[] 
-          | select(.name | test("^dependency-check-[0-9.]+-release\\.zip$"))
+          | jq -r '.assets[] 
+            | select(.name | test("^dependency-check-[0-9.]+-release\\.zip$"))
             | .browser_download_url')
 
         {
@@ -142,52 +136,58 @@ jobs:
           echo "EOF"
         } >> $GITHUB_OUTPUT
 
-    # --------------------------
-    # 3. Download + extract Dependency-Check CLI
-    # --------------------------
-     - name: Download and extract Dependency-Check
-       run: |
+    # -----------------------
+    # Cache DC database (HUGE SPEED BOOST)
+    # -----------------------
+    - name: Cache Dependency-Check data
+      uses: actions/cache@v3
+      with:
+        path: ~/.dependency-check
+        key: dependency-check-${{ runner.os }}
+        restore-keys: |
+          dependency-check-${{ runner.os }}
+
+    - name: Download and extract Dependency-Check
+      run: |
         url="${{ steps.dc_asset.outputs.url }}"
         echo "Downloading: $url"
 
-        # Download ZIP
         curl -L "$url" -o dependency-check.zip
-
-        # Extract ZIP
         unzip dependency-check.zip
 
-        # Detect extracted folder name
         extracted=$(find . -maxdepth 1 -type d -name "dependency-check*" | head -n 1)
         echo "Extracted folder: $extracted"
 
-        # Rename only if needed
         if [ "$extracted" != "./dependency-check" ] && [ "$extracted" != "dependency-check" ]; then
           mv "$extracted" dependency-check
         fi
 
-    # Optional DEBUG
-     - name: Debug files
-       run: ls -R .
+    # -----------------------
+    # Configure NVD API Key
+    # -----------------------
+    - name: Configure NVD API Key
+      if: ${{ secrets.NVD_API_KEY != '' }}
+      run: |
+        mkdir -p ~/.dependency-check
+        cat <<EOF > ~/.dependency-check/settings.xml
+        <?xml version="1.0" encoding="UTF-8"?>
+        <configuration>
+          <cve>
+            <apiKey>${{ secrets.NVD_API_KEY }}</apiKey>
+          </cve>
+        </configuration>
+        EOF
 
-    # --------------------------
-    # 4. Run Dependency-Check scan
-    # --------------------------
-     - name: Run Dependency-Check
-       run: |
+    - name: Run Dependency-Check
+      run: |
         ./dependency-check/bin/dependency-check.sh \
           --project "myapp" \
           --scan "." \
           --out "dependency-check-report" \
           --format "HTML"
 
-    # --------------------------
-    # 5. Upload report artifact
-    # --------------------------
-     - name: Upload Dependency-Check report
-       uses: actions/upload-artifact@v4
-       with:
+    - name: Upload report
+      uses: actions/upload-artifact@v4
+      with:
         name: dependency-check-report
         path: dependency-check-report
-          
-
-  
