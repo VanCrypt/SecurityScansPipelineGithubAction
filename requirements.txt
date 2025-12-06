@@ -1,4 +1,3 @@
 #Check IaC
 checkov==3.2.290
-tfsec==1.28.2
-terrascan==1.19.0
+
