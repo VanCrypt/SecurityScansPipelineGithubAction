@@ -139,19 +139,23 @@ jobs:
           
       - name: Configure NVD API Key
         run: |
-          export HOME=/home/runner
-          mkdir -p $HOME/.dependency-check
-          cat <<EOF > $HOME/.dependency-check/settings.xml
+          mkdir -p /home/runner/.dependency-check
+          cat <<EOF > /home/runner/.dependency-check/settings.xml
           <?xml version="1.0" encoding="UTF-8"?>
           <configuration>
             <cve>
               <apiKey>${{ secrets.NVD_API_KEY }}</apiKey>
+              <apiUrl>https://services.nvd.nist.gov/rest/json/cves/2.0</apiUrl>
             </cve>
             <analyzers>
               <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
             </analyzers>
           </configuration>
           EOF
+
+          echo "📌 settings.xml created at:"
+          ls -l /home/runner/.dependency-check
+
 
       - name: Run Dependency-Check
         run: |
@@ -162,7 +166,7 @@ jobs:
             --out "dependency-check-report" \
             --format "HTML" \
             --disableOssIndex \
-            --propertyfile $HOME/.dependency-check/settings.xml
+            --propertyfile /home/runner/.dependency-check/settings.xml
 
       - name: Upload Dependency-Check report
         uses: actions/upload-artifact@v4
