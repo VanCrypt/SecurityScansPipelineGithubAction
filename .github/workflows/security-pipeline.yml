@@ -129,7 +129,9 @@ jobs:
         run: |
           url=$(curl -s https://api.github.com/repos/jeremylong/DependencyCheck/releases/latest \
           | jq -r '.assets[] | select(.name | endswith("release.zip")) | .browser_download_url')
-          echo "url=$url" >> $GITHUB_OUTPUT
+          echo "url<<EOF" >> $GITHUB_OUTPUT
+          echo "$url" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       # -------------------------------
       # 2. Download DC latest version
