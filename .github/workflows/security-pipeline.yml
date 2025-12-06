@@ -135,7 +135,7 @@ jobs:
           fi
 
       - name: Configure NVD API Key
-        if: ${{ secrets.NVD_API_KEY }}
+        if: secrets.NVD_API_KEY 
         run: |
           mkdir -p ~/.dependency-check
           cat <<EOF > ~/.dependency-check/settings.xml
