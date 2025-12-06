@@ -114,9 +114,6 @@ jobs:
         with:
           directory: .
           
-  # ==========================
-  # OWASP Dependency-Check job
-  # ==========================
   dependency_check:
     needs: build
     runs-on: ubuntu-latest
