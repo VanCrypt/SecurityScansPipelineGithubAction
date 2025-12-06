@@ -1,3 +1,4 @@
-#Check IaC
-checkov==3.2.290
-
+# Example dependency added only so the Docker build installs something.
+# The fake app does not actually use it.
+# Replace by your requirements.txt
+requests==2.31.0
