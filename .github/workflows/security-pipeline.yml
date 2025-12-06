@@ -1,12 +1,11 @@
 name: Security Pipeline
-
 permissions:
-contents: read
+ contents: read
 
 on:
-push:
-pull_request:
-workflow_dispatch:
+  push:
+  pull_request:
+  workflow_dispatch:
 
 jobs:
 
@@ -136,9 +135,9 @@ jobs:
           echo "EOF"
         } >> $GITHUB_OUTPUT
 
-    # ------------------------------------
+    # -----------------------
     # Cache DC database (HUGE SPEED BOOST)
-    # ------------------------------------
+    # -----------------------
     - name: Cache Dependency-Check data
       uses: actions/cache@v3
       with:
