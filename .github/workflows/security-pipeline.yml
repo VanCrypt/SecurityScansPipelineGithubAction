@@ -113,3 +113,28 @@ jobs:
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: .
+          
+  # ==========================
+  # OWASP Dependency-Check job
+  # ==========================
+  dependency_check:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # --------------------------
+      # 1. Checkout repository
+      # --------------------------
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # --------------------------
+      # 2. Run OWASP Dependency-Check
+      # --------------------------
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@v4
+        with:
+          project: "myapp"
+          path: "."
+          format: "HTML"
+
