@@ -129,11 +129,11 @@ jobs:
             mv "$extracted" dependency-check
           fi
 
-            
       - name: Configure NVD API Key
         run: |
-          mkdir -p ~/.dependency-check
-          cat <<EOF > ~/.dependency-check/settings.xml
+          export HOME=/home/runner
+          mkdir -p $HOME/.dependency-check
+          cat <<EOF > $HOME/.dependency-check/settings.xml
           <?xml version="1.0" encoding="UTF-8"?>
           <configuration>
             <cve>
@@ -145,16 +145,16 @@ jobs:
           </configuration>
           EOF
 
-
-
       - name: Run Dependency-Check
         run: |
+          export HOME=/home/runner
           ./dependency-check/bin/dependency-check.sh \
             --project "myapp" \
             --scan "." \
             --out "dependency-check-report" \
             --format "HTML" \
-            --disableOssIndex
+            --disableOssIndex \
+            --propertyfile $HOME/.dependency-check/settings.xml
 
       - name: Upload Dependency-Check report
         uses: actions/upload-artifact@v4
