@@ -119,8 +119,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    
       # --------------------------
-      # 1. Checkout repository
+      # 1. Get latest DC version
+      # --------------------------
+
+      - name: Get latest Dependency-Check version
+        id: dc_version
+        run: |
+          latest=$(curl -s https://api.github.com/repos/jeremylong/DependencyCheck/releases/latest | jq -r .tag_name)
+          echo "version=$latest" >> $GITHUB_OUTPUT
+
+      # -------------------------------
+      # 2. Download DC latest version
+      # -------------------------------
+      
+      - name: Download Dependency-Check
+        run: |
+          curl -LO https://github.com/jeremylong/DependencyCheck/releases/download/${{ steps.dc_version.outputs.version }}/dependency-check-${{ steps.dc_version.outputs.version }}-release.zip
+          unzip dependency-check-${{ steps.dc_version.outputs.version }}-release.zip
+          mv dependency-check-${{ steps.dc_version.outputs.version }} dependency-check
+          
+      # --------------------------
+      # 3. Checkout repository
       # --------------------------
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -128,10 +149,11 @@ jobs:
       # --------------------------
       # 2. Run OWASP Dependency-Check
       # --------------------------
-      - name: OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@v3.4.0
-        with:
-          project: "myapp"
-          path: "."
-          format: "HTML"
+      - name: Run Dependency-Check
+        run: |
+          ./dependency-check/bin/dependency-check.sh \
+            --project "myapp" \
+            --scan "." \
+            --out "dependency-check-report" \
+            --format "HTML"
 
