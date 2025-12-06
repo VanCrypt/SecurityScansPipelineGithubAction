@@ -129,8 +129,8 @@ jobs:
             mv "$extracted" dependency-check
           fi
 
+            
       - name: Configure NVD API Key
-        if: ${{ secrets.NVD_API_KEY }}
         run: |
           mkdir -p ~/.dependency-check
           cat <<EOF > ~/.dependency-check/settings.xml
@@ -144,6 +144,8 @@ jobs:
             </analyzers>
           </configuration>
           EOF
+
+
 
       - name: Run Dependency-Check
         run: |
