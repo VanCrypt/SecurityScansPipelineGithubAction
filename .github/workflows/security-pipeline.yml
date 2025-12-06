@@ -158,6 +158,8 @@ jobs:
           echo "📌 settings.xml created at:"
           ls -l /home/runner/.dependency-check
 
+      - name: Export NVD API Key for ODC
+        run: echo "NVD_API_KEY=${{ secrets.NVD_API_KEY }}" >> $GITHUB_ENV
 
       - name: Run Dependency-Check
         run: |
@@ -167,7 +169,8 @@ jobs:
             --out "dependency-check-report" \
             --format "HTML" \
             --disableOssIndex \
-            --propertyfile /home/runner/.dependency-check/settings.xml
+            --nvdApiKey $NVD_API_KEY \
+            --nvdApiUrl https://services.nvd.nist.gov/rest/json/cves/2.0
 
       - name: Upload Dependency-Check report
         uses: actions/upload-artifact@v4
