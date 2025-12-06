@@ -128,7 +128,15 @@ jobs:
           if [ "$extracted" != "./dependency-check" ] && [ "$extracted" != "dependency-check" ]; then
             mv "$extracted" dependency-check
           fi
-
+          
+      - name: Debug secret presence
+        run: |
+          if [ -z "${{ secrets.NVD_API_KEY }}" ]; then
+            echo "❌ SECRET NVD_API_KEY IS NOT AVAILABLE"
+          else
+            echo "✅ SECRET NVD_API_KEY IS PRESENT"
+          fi
+          
       - name: Configure NVD API Key
         run: |
           export HOME=/home/runner
