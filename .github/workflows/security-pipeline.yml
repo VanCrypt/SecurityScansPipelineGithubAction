@@ -1,12 +1,12 @@
 name: Security Pipeline
 
 permissions:
-  contents: read
+contents: read
 
 on:
-  push:
-  pull_request:
-  workflow_dispatch:
+push:
+pull_request:
+workflow_dispatch:
 
 jobs:
 
