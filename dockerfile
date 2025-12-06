@@ -49,5 +49,10 @@ RUN chown -R appuser:appuser /app
 # Switch to the non-root user
 USER appuser
 
+# Simple health check: just ping Python to see if it's alive 
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD python3 -c "print('ok')" || exit 1
+
+
 # What the container actually runs when it starts
 CMD ["python3", "main.py"]
