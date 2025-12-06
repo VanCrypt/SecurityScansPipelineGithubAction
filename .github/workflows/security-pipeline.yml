@@ -111,7 +111,7 @@ jobs:
       - name: Cache Dependency-Check data
         uses: actions/cache@v3
         with:
-          path: ~/.dependency-check
+          path: /home/runner/.dependency-check
           key: dependency-check-${{ runner.os }}
           restore-keys: |
             dependency-check-${{ runner.os }}
