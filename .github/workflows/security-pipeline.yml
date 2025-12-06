@@ -136,9 +136,9 @@ jobs:
           echo "EOF"
         } >> $GITHUB_OUTPUT
 
-    # -----------------------
+    # ------------------------------------
     # Cache DC database (HUGE SPEED BOOST)
-    # -----------------------
+    # ------------------------------------
     - name: Cache Dependency-Check data
       uses: actions/cache@v3
       with:
