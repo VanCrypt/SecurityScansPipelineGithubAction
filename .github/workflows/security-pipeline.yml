@@ -85,9 +85,9 @@ jobs:
           directory: .
 
 
-  # ==========================
+  # ===========================
   # Dependency-Check job
-  # ==========================
+  # ===========================
   dependency_check:
     needs: build
     runs-on: ubuntu-latest
