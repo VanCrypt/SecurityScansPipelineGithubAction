@@ -114,79 +114,79 @@ jobs:
           directory: .
           
   dependency_check:
-  needs: build
-  runs-on: ubuntu-latest
+     needs: build
+     runs-on: ubuntu-latest
 
-  steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
-
-    - name: Get latest Dependency-Check ZIP URL
-      id: dc_asset
-      run: |
-        url=$(curl -s https://api.github.com/repos/jeremylong/DependencyCheck/releases/latest \
-          | jq -r '.assets[] 
-            | select(.name | test("^dependency-check-[0-9.]+-release\\.zip$"))
-            | .browser_download_url')
-
-        {
-          echo "url<<EOF"
-          echo "$url"
-          echo "EOF"
-        } >> $GITHUB_OUTPUT
-
-    # -----------------------
-    # Cache DC database (HUGE SPEED BOOST)
-    # -----------------------
-    - name: Cache Dependency-Check data
-      uses: actions/cache@v3
-      with:
-        path: ~/.dependency-check
-        key: dependency-check-${{ runner.os }}
-        restore-keys: |
-          dependency-check-${{ runner.os }}
-
-    - name: Download and extract Dependency-Check
-      run: |
-        url="${{ steps.dc_asset.outputs.url }}"
-        echo "Downloading: $url"
-
-        curl -L "$url" -o dependency-check.zip
-        unzip dependency-check.zip
-
-        extracted=$(find . -maxdepth 1 -type d -name "dependency-check*" | head -n 1)
-        echo "Extracted folder: $extracted"
-
-        if [ "$extracted" != "./dependency-check" ] && [ "$extracted" != "dependency-check" ]; then
-          mv "$extracted" dependency-check
-        fi
-
-    # -----------------------
-    # Configure NVD API Key
-    # -----------------------
-    - name: Configure NVD API Key
-      if: ${{ secrets.NVD_API_KEY != '' }}
-      run: |
-        mkdir -p ~/.dependency-check
-        cat <<EOF > ~/.dependency-check/settings.xml
-        <?xml version="1.0" encoding="UTF-8"?>
-        <configuration>
-          <cve>
-            <apiKey>${{ secrets.NVD_API_KEY }}</apiKey>
-          </cve>
-        </configuration>
-        EOF
-
-    - name: Run Dependency-Check
-      run: |
-        ./dependency-check/bin/dependency-check.sh \
-          --project "myapp" \
-          --scan "." \
-          --out "dependency-check-report" \
-          --format "HTML"
-
-    - name: Upload report
-      uses: actions/upload-artifact@v4
-      with:
-        name: dependency-check-report
-        path: dependency-check-report
+     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+  
+      - name: Get latest Dependency-Check ZIP URL
+        id: dc_asset
+        run: |
+          url=$(curl -s https://api.github.com/repos/jeremylong/DependencyCheck/releases/latest \
+            | jq -r '.assets[] 
+              | select(.name | test("^dependency-check-[0-9.]+-release\\.zip$"))
+              | .browser_download_url')
+  
+          {
+            echo "url<<EOF"
+            echo "$url"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+  
+      # -----------------------
+      # Cache DC database (HUGE SPEED BOOST)
+      # -----------------------
+      - name: Cache Dependency-Check data
+        uses: actions/cache@v3
+        with:
+          path: ~/.dependency-check
+          key: dependency-check-${{ runner.os }}
+          restore-keys: |
+            dependency-check-${{ runner.os }}
+  
+      - name: Download and extract Dependency-Check
+        run: |
+          url="${{ steps.dc_asset.outputs.url }}"
+          echo "Downloading: $url"
+  
+          curl -L "$url" -o dependency-check.zip
+          unzip dependency-check.zip
+  
+          extracted=$(find . -maxdepth 1 -type d -name "dependency-check*" | head -n 1)
+          echo "Extracted folder: $extracted"
+  
+          if [ "$extracted" != "./dependency-check" ] && [ "$extracted" != "dependency-check" ]; then
+            mv "$extracted" dependency-check
+          fi
+  
+      # -----------------------
+      # Configure NVD API Key
+      # -----------------------
+      - name: Configure NVD API Key
+        if: ${{ secrets.NVD_API_KEY != '' }}
+        run: |
+          mkdir -p ~/.dependency-check
+          cat <<EOF > ~/.dependency-check/settings.xml
+          <?xml version="1.0" encoding="UTF-8"?>
+          <configuration>
+            <cve>
+              <apiKey>${{ secrets.NVD_API_KEY }}</apiKey>
+            </cve>
+          </configuration>
+          EOF
+  
+      - name: Run Dependency-Check
+        run: |
+          ./dependency-check/bin/dependency-check.sh \
+            --project "myapp" \
+            --scan "." \
+            --out "dependency-check-report" \
+            --format "HTML"
+  
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: dependency-check-report
