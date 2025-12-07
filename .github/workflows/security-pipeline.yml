@@ -40,9 +40,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-      # -------------------------------------------------------
+      # ---------------------------------------------------------
       # Run Trivy filesystem scan CRITICAL/HIGH vulnerabilities)
-      # -------------------------------------------------------
+      # ---------------------------------------------------------
       - name: Trivy Filesystem Scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
@@ -56,6 +56,7 @@ jobs:
     # Does NOT block pipeline
     # -------------------------------------------------------
       - name: Trivy FS SARIF Report
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: fs
@@ -68,6 +69,7 @@ jobs:
       # Upload SARIF to GitHub Security (Code Scanning Alerts)
       # -------------------------------------------------------
       - name: Upload Trivy FS SARIF to GitHub Security
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-fs.sarif
@@ -104,6 +106,7 @@ jobs:
     # Does NOT block pipeline
     # -------------------------------------------------------
       - name: Trivy Image SARIF Report
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: myapp:latest
@@ -116,6 +119,7 @@ jobs:
       # Upload SARIF to GitHub Security
       # -------------------------------------------------------
       - name: Upload Trivy Image SARIF to GitHub Security
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-image.sarif 
@@ -149,6 +153,7 @@ jobs:
       # Checkov writes it to results.sarif by default
       # -------------------------------------------------------
       - name: Upload Checkov SARIF to GitHub Security
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
