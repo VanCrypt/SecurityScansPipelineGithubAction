@@ -40,7 +40,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
       # -------------------------------------------------------
-      # Run Trivy filesystem scan (CRITICAL/HIGH vulnerabilities)
+      # Run Trivy filesystem scan CRITICAL/HIGH vulnerabilities)
       # -------------------------------------------------------
       - name: Trivy Filesystem Scan
         uses: aquasecurity/trivy-action@0.20.0
@@ -48,7 +48,29 @@ jobs:
           scan-type: fs
           severity: CRITICAL,HIGH
           format: table
+          exit-code: 1
 
+    # -------------------------------------------------------
+    # Full SARIF scan: includes ALL severities (INFO → CRITICAL)
+    # Does NOT block pipeline
+    # -------------------------------------------------------
+      - name: Trivy FS SARIF Report
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: fs
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          format: sarif
+          output: trivy-fs.sarif
+          exit-code: 0
+  
+      # -------------------------------------------------------
+      # Upload SARIF to GitHub Security (Code Scanning Alerts)
+      # -------------------------------------------------------
+      - name: Upload Trivy FS SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          
   # ===========================================================
   # TRIVY IMAGE SCAN JOB
   # Builds and scans the Docker image for vulnerabilities
@@ -66,7 +88,7 @@ jobs:
         run: docker build -t myapp:latest .
         
       # -------------------------------------------------------
-      # Perform Trivy image scan (CRITICAL/HIGH vulnerabilities)
+      # Blocking scan: fails pipeline on HIGH/CRITICAL only
       # -------------------------------------------------------
       - name: Trivy Image Scan
         uses: aquasecurity/trivy-action@0.20.0
@@ -74,6 +96,28 @@ jobs:
           image-ref: myapp:latest
           severity: CRITICAL,HIGH
           format: table
+          exit-code: 1
+
+    # -------------------------------------------------------
+    # Full SARIF scan: includes ALL severities
+    # Does NOT block pipeline
+    # -------------------------------------------------------
+      - name: Trivy Image SARIF Report
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: myapp:latest
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          format: sarif
+          output: trivy-image.sarif
+          exit-code: 0
+  
+      # -------------------------------------------------------
+      # Upload SARIF to GitHub Security
+      # -------------------------------------------------------
+      - name: Upload Trivy Image SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif 
 
   # ===========================================================
   # CHECKOV IaC SCAN JOB
@@ -95,6 +139,9 @@ jobs:
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: .
+          hard_fail_on: HIGH,CRITICAL
+          soft_fail_on: MEDIUM,LOW,INFO
+          
 
   # ===========================================================
   # DEPENDENCY-CHECK JOB
@@ -162,10 +209,13 @@ jobs:
             --project "myapp" \
             --scan "." \
             --exclude "dependency-check" \
+            --failOnCVSS 7.0
             --out "dependency-check-report" \
             --format "HTML" \
             --disableOssIndex \
             --nvdApiKey $NVD_API_KEY \
+            --failOnCVSS 7.0
+
             
       # -------------------------------------------------------
       # Upload the generated HTML report as a pipeline artifact
@@ -175,3 +225,11 @@ jobs:
         with:
           name: dependency-check-report
           path: dependency-check-report
+
+      # -------------------------------------------------------
+      # Upload Dependency-Check SARIF to GitHub Security
+      # -------------------------------------------------------
+      - name: Upload Dependency-Check SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: dependency-check-sarif.sarif
