@@ -135,7 +135,7 @@ jobs:
 
       # ----------------------------------------------------------
       # Run Checkov scan across all project files
-      # Checkov action generates and upload results.sarif
+      # Checkov action generates results.sarif
       # ----------------------------------------------------------
       - name: Checkov Scan
         uses: bridgecrewio/checkov-action@v12
@@ -143,6 +143,15 @@ jobs:
           directory: .
           hard_fail_on: HIGH,CRITICAL
           soft_fail_on: MEDIUM,LOW,INFO
+          
+      # -------------------------------------------------------
+      # Upload generated SARIF file to GitHub Security
+      # Checkov writes it to results.sarif by default
+      # -------------------------------------------------------
+      - name: Upload Checkov SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif
 
   # ===========================================================
   # DEPENDENCY-CHECK JOB
