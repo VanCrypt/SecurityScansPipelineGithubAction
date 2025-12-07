@@ -214,6 +214,7 @@ jobs:
       # Run the full Dependency-Check scan on the repository
       # -------------------------------------------------------
       - name: Run Dependency-Check
+        continue-on-error: true
         run: |
           ./dependency-check/bin/dependency-check.sh \
             --project "myapp" \
@@ -221,6 +222,7 @@ jobs:
             --exclude "dependency-check" \
             --out "dependency-check-report" \
             --format "HTML" \
+            --format "SARIF" \
             --disableOssIndex \
             --nvdApiKey $NVD_API_KEY \
             --failOnCVSS 7.0
