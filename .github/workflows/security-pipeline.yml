@@ -216,6 +216,7 @@ jobs:
       - name: Run Dependency-Check
         continue-on-error: true
         run: |
+          mkdir -p dependency-check-report
           ./dependency-check/bin/dependency-check.sh \
             --project "myapp" \
             --scan "." \
