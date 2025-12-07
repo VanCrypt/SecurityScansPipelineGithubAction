@@ -252,40 +252,49 @@ jobs:
         with:
           sarif_file: dependency-check-report/dependency-check-report.sarif
           
-  # ==========================================================================
-  # SECURITY GATE JOB
-  # Fails if ANY security scan failed in previous jobs (HIGH/CRITICAL found).
-  # ==========================================================================
+    # ==========================================================================
+    # SECURITY GATE JOB
+    # Fails if ANY security scan failed in previous jobs (HIGH/CRITICAL found).
+    # ==========================================================================
   security_gate:
-    needs:
-      - build
-      - trivy_fs
-      - trivy_image
-      - checkov
-      - dependency_check
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Evaluate security scan results
-        run: |
-          echo "🔐 Evaluating security job results..."
-
-          failed="false"
-
-          for job in trivy_fs trivy_image checkov dependency_check; do
-            result="${{ needs[job].result }}"
-            echo "Job $job → $result"
-
-            if [ "$result" != "success" ]; then
-              echo "❌ $job failed — vulnerabilities detected."
-              failed="true"
+      needs:
+        - trivy_fs
+        - trivy_image
+        - checkov
+        - dependency_check
+      runs-on: ubuntu-latest
+    
+      steps:
+        - name: Evaluate security scan results
+          run: |
+            echo "🔐 Evaluating security job results..."
+    
+            failed="false"
+    
+            declare -A results=(
+              ["trivy_fs"]="${{ needs.trivy_fs.result }}"
+              ["trivy_image"]="${{ needs.trivy_image.result }}"
+              ["checkov"]="${{ needs.checkov.result }}"
+              ["dependency_check"]="${{ needs.dependency_check.result }}"
+            )
+    
+            for job in "${!results[@]}"; do
+              res="${results[$job]}"
+              echo "Job $job → $res"
+    
+              if [[ "$res" != "success" ]]; then
+                echo "❌ $job failed — vulnerabilities detected."
+                failed="true"
+              else
+                echo "✔️ $job succeeded — no blocking vulnerabilities."
+              fi
+            done
+    
+            if [[ "$failed" == "true" ]]; then
+              echo "❌ SECURITY GATE FAILED — Build cannot proceed to deployment."
+              exit 1
             fi
-          done
-
-          if [ "$failed" = "true" ]; then
-            echo "❌ SECURITY GATE FAILED — Build cannot proceed to deployment."
-            exit 1
-          else
-            echo "✅ SECURITY GATE PASSED — Safe to deploy."
-          fi
-
+    
+            echo "✔️ SECURITY GATE PASSED — All checks acceptable."
+    
+  
