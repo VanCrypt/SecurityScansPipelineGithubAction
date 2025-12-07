@@ -258,6 +258,7 @@ jobs:
   # ==========================================================================
   security_gate:
     needs:
+      - build
       - trivy_fs
       - trivy_image
       - checkov
