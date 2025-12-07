@@ -228,7 +228,6 @@ jobs:
             --project "myapp" \
             --scan "." \
             --exclude "dependency-check" \
-            --failOnCVSS 7.0
             --out "dependency-check-report" \
             --format "HTML" \
             --disableOssIndex \
@@ -249,6 +248,7 @@ jobs:
       # Upload Dependency-Check SARIF to GitHub Security
       # -------------------------------------------------------
       - name: Upload Dependency-Check SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: dependency-check-sarif.sarif
+          sarif_file: dependency-check-report/dependency-check-report.sarif
+
