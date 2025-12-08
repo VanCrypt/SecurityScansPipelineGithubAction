@@ -61,20 +61,27 @@ The report is uploaded as an artifact for review.
 
 For OWASP Dependency-Check, it is recommended to provide a free NIST API key to significantly speed up vulnerability database downloads (up to 5× faster). You can obtain one at: https://nvd.nist.gov/developers/request-an-api-key and store it as `NVD_API_KEY` in your repository’s GitHub Actions secrets.
 
+# 🧨 **Security Gate — Centralized Risk Decision**
+
+After all scans complete, the Security Gate evaluates the aggregated results and decides whether the workflow is allowed to pass.
+
+It checks for failed blocking scans across any stage (set to fail if critical of high vulnerabilities are discovered)
+
+
 # 🧩 **How to Use This Repository**
 
 1. Clone or copy this repository
-2. Replace the example `main.py` and `Dockerfile` with your own application
+2. Replace the example `main.py` and `dockerfile` with your own application
 3. Update `requirements.txt` with your own.
 4. Push your changes
 
 The pipeline automatically:
 
-* builds your application
-* scans the code and image
+* builds your code
+* scans your filesystem and container image
 * checks infrastructure configuration
 * scans dependencies for known vulnerabilities
-* outputs downloadable reports
+* uploads SARIF and HTML reports
 
 ➡️ **No extra configuration required.**
 
