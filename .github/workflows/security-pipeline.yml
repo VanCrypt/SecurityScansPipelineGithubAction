@@ -260,6 +260,10 @@ jobs:
       - name: Export NVD API Key for ODC
         run: echo "NVD_API_KEY=${{ secrets.NVD_API_KEY }}" >> $GITHUB_ENV
 
+      - name: Debug NVD API
+        run: |
+          echo "NVD_API_KEY = '${NVD_API_KEY}'"
+
       # -------------------------------------------------------
       # Run the full Dependency-Check scan on the repository
       # -------------------------------------------------------
@@ -276,8 +280,9 @@ jobs:
             --format "HTML" \
             --format "SARIF" \
             --disableOssIndex \
-            --nvdApiKey $NVD_API_KEY \
-            --failOnCVSS 7.0
+            --failOnCVSS 7.0 \
+            --nvdApiKey "${NVD_API_KEY}"
+
 
             
       # -------------------------------------------------------
