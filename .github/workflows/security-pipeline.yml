@@ -239,20 +239,13 @@ jobs:
       # -------------------------------------------------------
       # Download and extract the Dependency-Check tool
       # -------------------------------------------------------
-      - name: Download and extract Dependency-Check
+      - name: Download and extract Dependency-Check OUTSIDE workspace
         run: |
-          url="${{ steps.dc_asset.outputs.url }}"
-          echo "Downloading: $url"
-
-          curl -L "$url" -o dependency-check.zip
-          unzip dependency-check.zip
-
-          extracted=$(find . -maxdepth 1 -type d -name "dependency-check*" | head -n 1)
-          echo "Extracted folder: $extracted"
-
-          if [ "$extracted" != "./dependency-check" ] && [ "$extracted" != "dependency-check" ]; then
-            mv "$extracted" dependency-check
-          fi
+          mkdir -p /tmp/odc
+          curl -L "${{ steps.dc_asset.outputs.url }}" -o /tmp/odc/dc.zip
+          unzip /tmp/odc/dc.zip -d /tmp/odc/
+          extracted=$(find /tmp/odc -maxdepth 1 -type d -name "dependency-check*" | head -n 1)
+          mv "$extracted" /tmp/odc/dependency-check
 
       # -------------------------------------------------------
       # Export the NVD API key for faster vulnerability updates
@@ -268,10 +261,9 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p dependency-check-report
-          ./dependency-check/bin/dependency-check.sh \
+          /tmp/odc/dependency-check/bin/dependency-check.sh \
             --project "myapp" \
             --scan "." \
-            --exclude ".*/dependency-check/.*" \
             --out "dependency-check-report" \
             --format "HTML" \
             --format "SARIF" \
