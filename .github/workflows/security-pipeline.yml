@@ -215,6 +215,7 @@ jobs:
       status: ${{ steps.set_status.outputs.status }}
     env:
       HOME: /home/runner
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
