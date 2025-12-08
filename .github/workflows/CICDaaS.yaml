@@ -1,0 +1,365 @@
+name: Security Pipeline
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+on:
+  workflow_call:
+    inputs:
+      # ======================================================
+      # SCAN ENABLE/DISABLE CONTROL
+      # ======================================================
+      scan_fs:
+        type: boolean
+        default: true
+      scan_image:
+        type: boolean
+        default: true
+      scan_iac:
+        type: boolean
+        default: true
+      scan_dependencies:
+        type: boolean
+        default: true
+
+      # ======================================================
+      # BLOCKING BEHAVIOR CONTROL
+      # ======================================================
+      block_fs:
+        type: boolean
+        default: true
+      block_image:
+        type: boolean
+        default: true
+      block_iac:
+        type: boolean
+        default: true
+      block_dependencies:
+        type: boolean
+        default: true
+
+      # ======================================================
+      # TRIVY SEVERITY CONTROL (FS + IMAGE)
+      # ======================================================
+      trivy_fs_block_severity:
+        type: string
+        default: "HIGH,CRITICAL"
+      trivy_image_block_severity:
+        type: string
+        default: "HIGH,CRITICAL"
+
+      # ======================================================
+      # CHECKOV BLOCK LEVEL
+      # ======================================================
+      checkov_hard_fail:
+        type: string
+        default: "HIGH,CRITICAL"
+
+      # ======================================================
+      # DEPENDENCY-CHECK CVSS BLOCK THRESHOLD
+      # ======================================================
+      dc_cvss_threshold:
+        type: number
+        default: 7.0
+
+  push:
+  pull_request:
+  workflow_dispatch:
+
+
+jobs:
+  # ===========================================================
+  # BUILD & SMOKE TEST JOB
+  # Ensures the application builds and the container runs before
+  # any security scans are executed.
+  # ===========================================================
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t myapp:latest .
+
+      - name: Run container (smoke test)
+        run: docker run --rm myapp:latest
+
+
+  # ===========================================================
+  # TRIVY FILESYSTEM SCAN JOB
+  # Scans repository files for secrets, vulnerable dependencies,
+  # and misconfigurations. Job waits for build to succeed first.
+  # ===========================================================
+  trivy_fs:
+    if: ${{ inputs.scan_fs }}
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.set_status.outputs.status }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # -------------------------------------------------------
+      # Blocking scan: user-configurable severity & blocking mode
+      # -------------------------------------------------------
+      - name: Trivy Filesystem Scan (blocking)
+        id: trivy_fs_block
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: fs
+          severity: ${{ inputs.trivy_fs_block_severity }}
+          format: table
+          exit-code: ${{ inputs.block_fs && 1 || 0 }}
+
+      # -------------------------------------------------------
+      # Full SARIF scan: includes ALL severities (INFO → CRITICAL)
+      # Does NOT block pipeline
+      # -------------------------------------------------------
+      - name: Trivy FS SARIF Report
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: fs
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          format: sarif
+          output: trivy-fs.sarif
+          exit-code: 0
+
+      # -------------------------------------------------------
+      # Upload SARIF to GitHub Security (Code Scanning Alerts)
+      # -------------------------------------------------------
+      - name: Upload Trivy FS SARIF to GitHub Security
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+
+      # -------------------------------------------------------
+      # Determine blocking status based on scan result
+      # -------------------------------------------------------
+      - name: Set status output
+        id: set_status
+        run: |
+          if [ "${{ steps.trivy_fs_block.outcome }}" = "success" ] || [ "${{ inputs.block_fs }}" = "false" ]; then
+            echo "status=ok" >> $GITHUB_OUTPUT
+          else
+            echo "status=fail" >> $GITHUB_OUTPUT
+          fi
+
+
+  # ===========================================================
+  # TRIVY IMAGE SCAN JOB
+  # Builds and scans the Docker image for vulnerabilities.
+  # ===========================================================
+  trivy_image:
+    if: ${{ inputs.scan_image }}
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.set_status.outputs.status }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t myapp:latest .
+
+      # -------------------------------------------------------
+      # Blocking scan: configurable severity & blocking mode
+      # -------------------------------------------------------
+      - name: Trivy Image Scan (blocking)
+        id: trivy_image_block
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: myapp:latest
+          severity: ${{ inputs.trivy_image_block_severity }}
+          format: table
+          exit-code: ${{ inputs.block_image && 1 || 0 }}
+
+      # -------------------------------------------------------
+      # Full SARIF scan: non-blocking
+      # -------------------------------------------------------
+      - name: Trivy Image SARIF Report
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: myapp:latest
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          format: sarif
+          output: trivy-image.sarif
+          exit-code: 0
+
+      - name: Upload Trivy Image SARIF to GitHub Security
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+
+      - name: Set status output
+        id: set_status
+        run: |
+          if [ "${{ steps.trivy_image_block.outcome }}" = "success" ] || [ "${{ inputs.block_image }}" = "false" ]; then
+            echo "status=ok" >> $GITHUB_OUTPUT
+          else
+            echo "status=fail" >> $GITHUB_OUTPUT
+          fi
+
+
+  # ===========================================================
+  # CHECKOV IaC SCAN JOB
+  # Analyzes Dockerfile, GitHub workflows, and IaC files.
+  # ===========================================================
+  checkov:
+    if: ${{ inputs.scan_iac }}
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.set_status.outputs.status }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkov Scan (configurable hard fail)
+        id: checkov_block
+        continue-on-error: true
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          hard_fail_on: ${{ inputs.checkov_hard_fail }}
+          soft_fail_on: MEDIUM,LOW,INFO
+
+      - name: Upload Checkov SARIF
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif
+
+      - name: Set status
+        id: set_status
+        run: |
+          if [ "${{ steps.checkov_block.outcome }}" = "success" ] || [ "${{ inputs.block_iac }}" = "false" ]; then
+            echo "status=ok" >> $GITHUB_OUTPUT
+          else
+            echo "status=fail" >> $GITHUB_OUTPUT
+          fi
+
+
+  # ===========================================================
+  # DEPENDENCY-CHECK JOB
+  # Downloads OWASP DC, updates DB, scans dependencies.
+  # ===========================================================
+  dependency_check:
+    if: ${{ inputs.scan_dependencies }}
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.set_status.outputs.status }}
+    env:
+      HOME: /home/runner
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get latest Dependency-Check ZIP URL
+        id: dc_asset
+        run: |
+          url=$(curl -s https://api.github.com/repos/jeremylong/DependencyCheck/releases/latest \
+            | jq -r '.assets[] 
+                | select(.name | test("^dependency-check-[0-9.]+-release\\.zip$"))
+                | .browser_download_url')
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+      - name: Download and extract Dependency-Check OUTSIDE workspace
+        run: |
+          mkdir -p /tmp/odc
+          curl -L "${{ steps.dc_asset.outputs.url }}" -o /tmp/odc/dc.zip
+          unzip /tmp/odc/dc.zip -d /tmp/odc/
+          extracted=$(find /tmp/odc -maxdepth 1 -type d -name "dependency-check*" ! -path "/tmp/odc" | head -n 1)
+          if [ "$extracted" != "/tmp/odc/dependency-check" ]; then
+            mv "$extracted" "/tmp/odc/dependency-check"
+          fi
+
+      - name: Run Dependency-Check
+        id: dc_block
+        continue-on-error: true
+        run: |
+          mkdir -p dependency-check-report
+          /tmp/odc/dependency-check/bin/dependency-check.sh \
+            --project "myapp" \
+            --scan "." \
+            --out "dependency-check-report" \
+            --format "HTML" \
+            --format "SARIF" \
+            --disableOssIndex \
+            --nvdApiKey $NVD_API_KEY \
+            --failOnCVSS ${{ inputs.dc_cvss_threshold }}
+
+      - name: Upload Dependency-Check report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: dependency-check-report
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: dependency-check-report/dependency-check-report.sarif
+
+      - name: Set status
+        id: set_status
+        run: |
+          if [ "${{ steps.dc_block.outcome }}" = "success" ] || [ "${{ inputs.block_dependencies }}" = "false" ]; then
+            echo "status=ok" >> $GITHUB_OUTPUT
+          else
+            echo "status=fail" >> $GITHUB_OUTPUT
+          fi
+
+
+  # ==========================================================================
+  # SECURITY GATE JOB
+  # Fails if ANY scan (that is enabled) reports a fail.
+  # ==========================================================================
+  security_gate:
+    needs:
+      - trivy_fs
+      - trivy_image
+      - checkov
+      - dependency_check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Evaluate security results
+        run: |
+          echo "🔐 Checking scan results..."
+
+          declare -A results=(
+            ["trivy_fs"]="${{ needs.trivy_fs.outputs.status }}"
+            ["trivy_image"]="${{ needs.trivy_image.outputs.status }}"
+            ["checkov"]="${{ needs.checkov.outputs.status }}"
+            ["dependency_check"]="${{ needs.dependency_check.outputs.status }}"
+          )
+
+          failed="false"
+
+          for job in "${!results[@]}"; do
+            s="${results[$job]}"
+            echo "$job → ${s:-skipped}"
+
+            if [[ "$s" = "fail" ]]; then
+              failed="true"
+            fi
+          done
+
+          if [[ "$failed" = "true" ]]; then
+            echo "❌ SECURITY GATE FAILED — blocking vulnerabilities found."
+            exit 1
+          fi
+
+          echo "✔️ SECURITY GATE PASSED — all blocking checks clean."
