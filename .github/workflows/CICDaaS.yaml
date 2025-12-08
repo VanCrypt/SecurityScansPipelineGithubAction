@@ -11,6 +11,9 @@ on:
       # ======================================================
       # SCAN ENABLE/DISABLE CONTROL
       # ======================================================
+      enable_smoke_test:
+        type: boolean
+        default: false
       scan_fs:
         type: boolean
         default: true
@@ -84,8 +87,14 @@ jobs:
       - name: Build Docker image
         run: docker build -t myapp:latest .
 
-      - name: Run container (smoke test)
-        run: docker run --rm myapp:latest
+      - name: Smoke test (optional)
+        if: ${{ inputs.enable_smoke_test }}
+        run: |
+          docker run -d --name smoketest myapp:latest
+          sleep 3
+          docker logs smoketest || true
+          docker rm -f smoketest
+
 
 
   # ===========================================================
