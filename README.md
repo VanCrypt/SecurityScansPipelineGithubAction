@@ -61,7 +61,7 @@ The report is uploaded as an artifact for review.
 
 For OWASP Dependency-Check, it is recommended to provide a free NIST API key to significantly speed up vulnerability database downloads (up to 5× faster). You can obtain one at: https://nvd.nist.gov/developers/request-an-api-key and store it as `NVD_API_KEY` in your repository’s GitHub Actions secrets.
 
-# 🧨 Security Gate — Centralized Risk Decision
+## 🧨 **5. Security Gate — Centralized Risk Decision**
 
 After all scans complete, the Security Gate evaluates the aggregated results and decides whether the workflow is allowed to pass.
 
