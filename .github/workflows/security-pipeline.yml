@@ -244,8 +244,14 @@ jobs:
           mkdir -p /tmp/odc
           curl -L "${{ steps.dc_asset.outputs.url }}" -o /tmp/odc/dc.zip
           unzip /tmp/odc/dc.zip -d /tmp/odc/
-          extracted=$(find /tmp/odc -maxdepth 1 -type d -name "dependency-check*" | head -n 1)
-          mv "$extracted" /tmp/odc/dependency-check
+          
+          # Find extracted folder, ignoring /tmp/odc itself
+          extracted=$(find /tmp/odc -maxdepth 1 -type d -name "dependency-check*" ! -path "/tmp/odc" | head -n 1)
+      
+          # Only rename if needed
+          if [ "$extracted" != "/tmp/odc/dependency-check" ]; then
+            mv "$extracted" "/tmp/odc/dependency-check"
+          fi 
 
       # -------------------------------------------------------
       # Export the NVD API key for faster vulnerability updates
